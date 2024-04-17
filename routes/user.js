@@ -16,8 +16,8 @@ router.post('/login', login);
 router.post('/register', checkAuth, register);
 router.post('/update', checkAuth, updateUser);
 router.post('/delete', checkAuth, deleteUser);
-router.get('/all', checkAuth, getAllUsers);
-router.get('/user', checkAuth, getUser);
+router.get('/all-users', checkAuth, getAllUsers);
+router.get('/get-user', checkAuth, getUser);
 
 
 

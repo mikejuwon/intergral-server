@@ -8,8 +8,6 @@ const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const log = require('./config/logger');
 
-
-
 const app = express();
 
 // database connection
@@ -20,7 +18,6 @@ connectDB();
 
 // set cookie parser with 7 days expiration
 app.use(cookieParser());
-
 
 // session
 app.use(session
