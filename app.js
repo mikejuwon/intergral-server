@@ -40,6 +40,11 @@ app.use(bodyParser.json());
 
 app.use(cors());
 
+// landing route
+app.get('/', (req, res) => {
+    res.status(200).json({ success: true, message: 'Welcome to the Intergral Test' });
+});
+
 //routes using readdir to read all the files in the routes folder and import them
 readdirSync('./routes').map((r) => app.use('/api', require('./routes/' + r)));
 
