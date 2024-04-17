@@ -9,6 +9,9 @@ const { login, register, updateUser, deleteUser, getAllUsers, getUser } = requir
 const checkAuth = require('../middleware');
 
 // routes
+router.get('/', (req, res) => {
+    res.status(200).json({ success: true, message: 'Welcome to the Intergral Test' });
+});
 router.post('/login', login);
 router.post('/register', checkAuth, register);
 router.post('/update', checkAuth, updateUser);
