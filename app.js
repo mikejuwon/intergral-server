@@ -50,6 +50,6 @@ const env = process.env.NODE_ENV || 'development'
 // start server
 log.info(`🚀 Server is starting in ${env} mode...`)
 
-app.listen(port, host, () => {
-    log.info(`🚀 Server is up and running on http://${host}:${port}`);
+app.listen(port, () => {
+    log.info(`🚀 Server is running on http://${host}:${port}`);
 });
