@@ -16,7 +16,7 @@ exports.login = async (req, res) => {
 
         // check if it matches the username and password in the env
         if (username === process.env.USER && password === process.env.PASSWORD) {
-            const token = jwt.sign({ username: username }, process.env.JWT_SECRET, { expiresIn: '1h' });
+            const token = jwt.sign({ username: username }, process.env.JWT_SECRET, { expiresIn: '7h' });
             return res.status(200).json({ success: true, message: 'Login successful', token: token });
         } else {
             return res.status(401).json({ success: false, message: 'Invalid credentials' });
@@ -178,3 +178,87 @@ exports.getUserById = async (req, res) => {
 };
 
 // controllers for graph data
+exports.getGenderData = async (req, res) => {
+    try {
+        // get the total number first
+        const total = await User.countDocuments();
+
+        // get the number of "male" and "female" users
+        const maleCount = await User.countDocuments({ gender: "male" });
+        const femaleCount = await User.countDocuments({ gender: "female" });
+
+        return res.status(200).json({ success: true, data: { total: total, maleUsers: maleCount, femaleUsers: femaleCount } });
+
+    } catch (error) {
+        log.error(`Error: ${error.message}`);
+        return res.status(500).json({ success: false, message: 'Internal server error' });
+    }
+}
+
+exports.getAgeDistribution = async (req, res) => {
+    try {
+        // Define age groups
+        const ageGroups = [
+            { label: '0-18', minAge: 0, maxAge: 18, title: 'Children and Teenagers' },
+            { label: '19-35', minAge: 19, maxAge: 35, title: 'Young Adults' },
+            { label: '36-50', minAge: 36, maxAge: 50, title: 'Middle-Aged Adults' },
+            { label: '51-65', minAge: 51, maxAge: 65, title: 'Older Adults' },
+            { label: '65+', minAge: 66, maxAge: Infinity, title: 'Seniors' }
+        ];
+
+        // Initialize age distribution data with 0 counts for all age groups
+        let ageDistribution = ageGroups.map(group => ({
+            ageRange: group.label,
+            title: group.title,
+            count: 0
+        }));
+
+        // Fetch all users from the database
+        const users = await User.find({}, { dob: 1 });
+
+        // Calculate age and update count for each age group
+        users.forEach(user => {
+            const age = calculateAge(user.dob);
+            const groupIndex = ageGroups.findIndex(group => age >= group.minAge && age <= group.maxAge);
+            if (groupIndex !== -1) {
+                ageDistribution[groupIndex].count++;
+            }
+        });
+
+        // Send the age distribution data as a response
+        return res.status(200).json({ success: true, data: ageDistribution });
+
+    } catch (error) {
+        console.error(`Error: ${error.message}`);
+        return res.status(500).json({ success: false, message: 'Internal server error' });
+    }
+};
+
+// Function to calculate age based on date of birth
+function calculateAge(dob) {
+    const today = new Date();
+    const birthDate = new Date(dob);
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+    }
+    return age;
+}
+
+exports.getRoleData = async (req, res) => {
+    try {
+        // get the total number first
+        const total = await User.countDocuments();
+
+        // get the number of "admin" and "subscriber" users
+        const adminCount = await User.countDocuments({ role: "admin" });
+        const subscriberCount = await User.countDocuments({ role: "subscriber" });
+
+        return res.status(200).json({ success: true, data: { total: total, adminUsers: adminCount, subscriberUsers: subscriberCount } });
+
+    } catch (error) {
+        log.error(`Error: ${error.message}`);
+        return res.status(500).json({ success: false, message: 'Internal server error' });
+    }
+}
