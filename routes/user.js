@@ -27,11 +27,10 @@ router.get("/", (req, res) => {
 });
 router.post("/login", login);
 router.post("/register", checkAuth, register);
-router.post("/update", checkAuth, updateUser);
-router.post("/delete", checkAuth, deleteUser);
+router.post("/update-user/:id", checkAuth, updateUser);
+router.post("/delete/:id", checkAuth, deleteUser);
 router.get("/all-users", checkAuth, getAllUsers);
-router.get("/get-user", checkAuth, getUser);
-router.get("/get-user/:id", checkAuth, getUserById);
+router.get("/get-user/:id", checkAuth, getUser);
 router.get("/gender-data", checkAuth, getGenderData);
 router.get("/age-distribution", checkAuth, getAgeDistribution);
 router.get("/role-data", checkAuth, getRoleData);

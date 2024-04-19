@@ -75,6 +75,7 @@ exports.register = async (req, res) => {
 exports.updateUser = async (req, res) => {
     try {
         const { firstName, lastName, email, dob, gender, nationality, phone, role } = req.body;
+        const { id } = req.params;
 
         // check if any field is provided
         if (!firstName && !lastName && !email && !dob && !gender && !nationality && !phone && !role) {
@@ -87,14 +88,14 @@ exports.updateUser = async (req, res) => {
         }
 
         // check if user exists
-        const user = await User.findOne({ email: email });
+        const user = await User.findOne({ _id: id });
 
         if (!user) {
             return res.status(400).json({ success: false, message: 'User does not exist' });
         }
 
         // update user
-        await User.updateOne({ email: email }, { $set: req.body });
+        await User.updateOne({ _id: id }, { $set: req.body });
         return res.status(200).json({ success: true, message: 'User updated successfully' });
 
     } catch (error) {
@@ -106,17 +107,17 @@ exports.updateUser = async (req, res) => {
 // delete user controller
 exports.deleteUser = async (req, res) => {
     try {
-        const { email } = req.body;
+        const { id } = req.params;
 
         // check if user exists
-        const user = await User.findOne({ email: email });
+        const user = await User.findOne({ _id: id });
 
         if (!user) {
             return res.status(400).json({ success: false, message: 'User does not exist' });
         }
 
         // delete user: change active status to false
-        await User.updateOne({ email: email }, { $set: { active: false } });
+        await User.updateOne({ _id: id }, { $set: { active: false } });
         return res.status(200).json({ success: true, message: 'User deleted successfully' });
 
     } catch (error) {
@@ -129,7 +130,8 @@ exports.deleteUser = async (req, res) => {
 // get all users controller
 exports.getAllUsers = async (req, res) => {
     try {
-        const users = await User.find();
+        // get all active users
+        const users = await User.find({ active: true });
         return res.status(200).json({ success: true, users: users });
     } catch (error) {
         log.error(`Error: ${error.message}`);
@@ -140,10 +142,10 @@ exports.getAllUsers = async (req, res) => {
 // get user controller
 exports.getUser = async (req, res) => {
     try {
-        const { email } = req.body;
+        const { id } = req.params;
 
         // check if user exists
-        const user = await User.findOne({ email: email });
+        const user = await User.findOne({ _id: id, active: true });
 
         if (!user) {
             return res.status(400).json({ success: false, message: 'User does not exist' });
@@ -178,22 +180,85 @@ exports.getUserById = async (req, res) => {
 };
 
 // controllers for graph data
+// exports.getGenderData = async (req, res) => {
+//     try {
+//         const genderGroups = [
+//             { label: 'male' },
+//             { label: 'female' },
+//             { label: 'others' }
+//         ];
+
+//         // get the total number first
+//         const total = await User.countDocuments({ active: true });
+
+//         // get all users from the database
+//         const users = await User.find({ active: true });
+
+//         // get the count for each
+//         let genderData = genderGroups.map(group => ({
+//             label: group.label,
+//             count: 0
+//         }));
+
+//         // calculate the count
+//         users.forEach(user => {
+
+
+//     } catch (error) {
+//         log.error(`Error: ${error.message}`);
+//         return res.status(500).json({ success: false, message: 'Internal server error' });
+//     }
+// }
+
 exports.getGenderData = async (req, res) => {
     try {
         // get the total number first
-        const total = await User.countDocuments();
+        const total = await User.countDocuments({ active: true });
 
-        // get the number of "male" and "female" users
-        const maleCount = await User.countDocuments({ gender: "male" });
-        const femaleCount = await User.countDocuments({ gender: "female" });
+        // Query the database to get gender distribution data for active users
+        const genderData = await User.aggregate([
+            {
+                $match: { active: true }
+            },
+            {
+                $group: {
+                    _id: '$gender',
+                    count: { $sum: 1 }
+                }
+            }
+        ]);
 
-        return res.status(200).json({ success: true, data: { total: total, maleUsers: maleCount, femaleUsers: femaleCount } });
+        // Prepare response data
+        let maleCount = 0;
+        let femaleCount = 0;
+        let othersCount = 0;
 
+        genderData.forEach(item => {
+            if (item._id === 'male') {
+                maleCount = item.count;
+            } else if (item._id === 'female') {
+                femaleCount = item.count;
+            } else {
+                othersCount += item.count;
+            }
+        });
+
+        console.log(maleCount, femaleCount, othersCount)
+
+        return res.status(200).json({
+            success: true,
+            data: {
+                total: total,
+                male: maleCount,
+                female: femaleCount,
+                others: othersCount
+            }
+        });
     } catch (error) {
-        log.error(`Error: ${error.message}`);
+        console.error(`Error: ${error.message}`);
         return res.status(500).json({ success: false, message: 'Internal server error' });
     }
-}
+};
 
 exports.getAgeDistribution = async (req, res) => {
     try {
@@ -213,8 +278,10 @@ exports.getAgeDistribution = async (req, res) => {
             count: 0
         }));
 
-        // Fetch all users from the database
-        const users = await User.find({}, { dob: 1 });
+        // Fetch all users from the database that have date of birth and active status
+        const users = await User.find({ dob: { $ne: null }, active: true });
+
+        console.log(users.length)
 
         // Calculate age and update count for each age group
         users.forEach(user => {
